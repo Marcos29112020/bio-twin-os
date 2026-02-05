@@ -216,4 +216,5 @@
 - [x] Create PDFService with native file system integration
 - [x] Update reports screen with new PDF flow
 - [x] Clean Gradle cache and node_modules
-- [ ] Test Android build
+- [x] Update minSdkVersion to 26 for Health Connect compatibility
+- [x] Add compileSdkVersion 35 and targetSdkVersion 35
