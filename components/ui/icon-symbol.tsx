@@ -21,6 +21,7 @@ const MAPPING = {
   "doc.text.fill": "description",
   "sparkles": "auto-awesome",
   "gear": "settings",
+  "star.fill": "star",
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
