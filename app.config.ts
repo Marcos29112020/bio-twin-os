@@ -51,8 +51,11 @@ const config: ExpoConfig = {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
     "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+      "ITSAppUsesNonExemptEncryption": false,
+      "NSHealthShareUsageDescription": "Bio-Twin OS precisa acessar seus dados de saúde (frequência cardíaca, passos, sono) para fornecer insights personalizados de longevidade e análise de gêmeo digital.",
+      "NSHealthUpdateUsageDescription": "Bio-Twin OS precisa atualizar seus dados de saúde para sincronizar métricas de atividade e sono.",
+      "NSHealthClinicalHealthRecordsShareUsageDescription": "Bio-Twin OS pode acessar seus registros de saúde clínicos para análise mais completa."
+    }
   },
   android: {
     adaptiveIcon: {
@@ -64,7 +67,13 @@ const config: ExpoConfig = {
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     package: env.androidPackage,
-    permissions: ["POST_NOTIFICATIONS"],
+    permissions: [
+      "POST_NOTIFICATIONS",
+      "android.permission.BODY_SENSORS",
+      "android.permission.BODY_SENSORS_BACKGROUND",
+      "android.permission.READ_HEALTH_DATA",
+      "android.permission.WRITE_HEALTH_DATA",
+    ],
     intentFilters: [
       {
         action: "VIEW",
