@@ -15,7 +15,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.tint,
+        tabBarActiveTintColor: colors.primary,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
@@ -31,8 +31,29 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: "Dashboard",
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="health"
+        options={{
+          title: "Saúde",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="heart.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="insights"
+        options={{
+          title: "Insights",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.line.uptrend.xyaxis" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Configurações",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gear" color={color} />,
         }}
       />
     </Tabs>

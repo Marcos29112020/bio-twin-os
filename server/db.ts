@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, healthData, InsertHealthData, HealthData, labResults, InsertLabResult, aiInsights, InsertAIInsight } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,98 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Health Data Functions
+export async function addHealthData(data: InsertHealthData): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(healthData).values(data);
+  return (result as any).insertId as number;
+}
+
+export async function getUserHealthData(userId: number, dataType?: string, limit: number = 100) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions = [eq(healthData.userId, userId)];
+  if (dataType) {
+    conditions.push(eq(healthData.dataType, dataType));
+  }
+
+  return db
+    .select()
+    .from(healthData)
+    .where(and(...conditions))
+    .orderBy(desc(healthData.timestamp))
+    .limit(limit);
+}
+
+export async function getLatestHealthData(userId: number, dataType: string) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db
+    .select()
+    .from(healthData)
+    .where(and(eq(healthData.userId, userId), eq(healthData.dataType, dataType)))
+    .orderBy(desc(healthData.timestamp))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+// Lab Results Functions
+export async function addLabResult(data: InsertLabResult): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(labResults).values(data);
+  return (result as any).insertId as number;
+}
+
+export async function getUserLabResults(userId: number, limit: number = 50) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(labResults)
+    .where(eq(labResults.userId, userId))
+    .orderBy(desc(labResults.uploadedAt))
+    .limit(limit);
+}
+
+// AI Insights Functions
+export async function addAIInsight(data: InsertAIInsight): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(aiInsights).values(data);
+  return (result as any).insertId as number;
+}
+
+export async function getLatestAIInsight(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db
+    .select()
+    .from(aiInsights)
+    .where(eq(aiInsights.userId, userId))
+    .orderBy(desc(aiInsights.generatedAt))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getUserAIInsights(userId: number, limit: number = 30) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(aiInsights)
+    .where(eq(aiInsights.userId, userId))
+    .orderBy(desc(aiInsights.generatedAt))
+    .limit(limit);
+}
