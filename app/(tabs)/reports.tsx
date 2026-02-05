@@ -1,4 +1,4 @@
-import { ScrollView, View, Text, TouchableOpacity, Share, Alert } from "react-native";
+import { ScrollView, View, Text, TouchableOpacity, Alert } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useState } from "react";
@@ -6,6 +6,7 @@ import { SyntheticDataGenerator } from "@/lib/synthetic-data-generator";
 import { BloodTestAnalyzer } from "@/lib/blood-test-analyzer";
 import { LongevityBrain } from "@/lib/longevity-brain";
 import { PDFReportGenerator } from "@/lib/pdf-report-generator";
+import { PDFService } from "@/lib/pdf-service";
 import {
   Download,
   Share2,
@@ -26,6 +27,7 @@ export default function ReportsScreen() {
   );
   const [generatedReport, setGeneratedReport] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const generateReport = async () => {
     setIsGenerating(true);
@@ -67,46 +69,42 @@ export default function ReportsScreen() {
   const handleExportPDF = async () => {
     if (!generatedReport) return;
 
-    const pdfContent = PDFReportGenerator.generatePDFContent(generatedReport);
-
+    setIsExporting(true);
     try {
-      await Share.share({
-        message: pdfContent,
-        title: "Relatório de Longevidade - Bio-Twin OS",
-        url: "data:text/plain;base64," + Buffer.from(pdfContent).toString("base64"),
-      });
+      await PDFService.sharePDFReport(generatedReport);
     } catch (error) {
-      Alert.alert("Erro", "Não foi possível compartilhar o relatório");
+      Alert.alert("Erro", "Não foi possível compartilhar o relatório PDF");
+      console.error("PDF export error:", error);
+    } finally {
+      setIsExporting(false);
     }
   };
 
   const handleExportCSV = async () => {
     if (!generatedReport) return;
 
-    const csvContent = PDFReportGenerator.generateCSVExport(generatedReport);
-
+    setIsExporting(true);
     try {
-      await Share.share({
-        message: csvContent,
-        title: "Dados de Saúde - Bio-Twin OS",
-      });
+      await PDFService.shareCSV(generatedReport);
     } catch (error) {
-      Alert.alert("Erro", "Não foi possível compartilhar os dados");
+      Alert.alert("Erro", "Não foi possível compartilhar os dados CSV");
+      console.error("CSV export error:", error);
+    } finally {
+      setIsExporting(false);
     }
   };
 
   const handleExportJSON = async () => {
     if (!generatedReport) return;
 
-    const jsonContent = PDFReportGenerator.generateJSONExport(generatedReport);
-
+    setIsExporting(true);
     try {
-      await Share.share({
-        message: jsonContent,
-        title: "Dados JSON - Bio-Twin OS",
-      });
+      await PDFService.shareJSON(generatedReport);
     } catch (error) {
-      Alert.alert("Erro", "Não foi possível compartilhar os dados");
+      Alert.alert("Erro", "Não foi possível compartilhar os dados JSON");
+      console.error("JSON export error:", error);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -226,8 +224,12 @@ export default function ReportsScreen() {
               {/* PDF Export */}
               <TouchableOpacity
                 onPress={handleExportPDF}
+                disabled={isExporting}
                 className="rounded-2xl p-4 flex-row items-center gap-3 mb-3"
-                style={{ backgroundColor: colors.surface }}
+                style={{
+                  backgroundColor: colors.surface,
+                  opacity: isExporting ? 0.6 : 1,
+                }}
               >
                 <View
                   className="w-12 h-12 rounded-full items-center justify-center"
@@ -249,8 +251,12 @@ export default function ReportsScreen() {
               {/* CSV Export */}
               <TouchableOpacity
                 onPress={handleExportCSV}
+                disabled={isExporting}
                 className="rounded-2xl p-4 flex-row items-center gap-3 mb-3"
-                style={{ backgroundColor: colors.surface }}
+                style={{
+                  backgroundColor: colors.surface,
+                  opacity: isExporting ? 0.6 : 1,
+                }}
               >
                 <View
                   className="w-12 h-12 rounded-full items-center justify-center"
@@ -272,8 +278,12 @@ export default function ReportsScreen() {
               {/* JSON Export */}
               <TouchableOpacity
                 onPress={handleExportJSON}
-                className="rounded-2xl p-4 flex-row items-center gap-3 mb-3"
-                style={{ backgroundColor: colors.surface }}
+                disabled={isExporting}
+                className="rounded-2xl p-4 flex-row items-center gap-3 mb-6"
+                style={{
+                  backgroundColor: colors.surface,
+                  opacity: isExporting ? 0.6 : 1,
+                }}
               >
                 <View
                   className="w-12 h-12 rounded-full items-center justify-center"
@@ -291,72 +301,43 @@ export default function ReportsScreen() {
                 </View>
                 <Download size={20} color={colors.primary} />
               </TouchableOpacity>
-
-              {/* Share Report */}
-              <TouchableOpacity
-                onPress={handleExportPDF}
-                className="rounded-2xl p-4 flex-row items-center gap-3"
-                style={{
-                  backgroundColor: colors.primary,
-                }}
-              >
-                <View
-                  className="w-12 h-12 rounded-full items-center justify-center"
-                  style={{ backgroundColor: colors.background + "30" }}
-                >
-                  <Share2 size={24} color={colors.background} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-sm font-semibold text-background">
-                    Compartilhar Relatório
-                  </Text>
-                  <Text className="text-xs" style={{ color: colors.background + "cc" }}>
-                    Envie por email ou WhatsApp
-                  </Text>
-                </View>
-              </TouchableOpacity>
             </View>
 
-            {/* Report Details */}
+            {/* Info Box */}
             <View className="px-6 mb-6">
-              <Text className="text-lg font-semibold text-foreground mb-3">
-                Resumo do Relatório
-              </Text>
-
               <View
                 className="rounded-2xl p-4"
-                style={{ backgroundColor: colors.surface }}
+                style={{ backgroundColor: colors.primary + "10", borderColor: colors.primary, borderWidth: 1 }}
               >
-                <Text className="text-sm font-semibold text-foreground mb-3">
-                  Recomendações Principais:
+                <Text className="text-xs font-semibold text-foreground mb-2">
+                  💡 Dica
                 </Text>
-                <View className="gap-2">
-                  {generatedReport.recommendations.slice(0, 3).map((rec: string, i: number) => (
-                    <View key={i} className="flex-row gap-2">
-                      <Text className="text-primary font-bold">•</Text>
-                      <Text className="text-xs text-muted flex-1">{rec}</Text>
-                    </View>
-                  ))}
-                </View>
+                <Text className="text-xs text-foreground leading-relaxed">
+                  Compartilhe seus relatórios com seu médico para análise profissional. Os dados são
+                  simulados para fins educacionais.
+                </Text>
               </View>
             </View>
           </>
         )}
 
-        {/* Info Section */}
-        <View className="px-6 pb-6">
-          <View
-            className="rounded-2xl p-4"
-            style={{ backgroundColor: colors.surface }}
-          >
-            <Text className="text-xs font-semibold text-foreground mb-2">
-              ℹ️ Sobre os Relatórios
+        {/* Empty State */}
+        {!generatedReport && !isGenerating && (
+          <View className="px-6 py-12 items-center">
+            <View
+              className="w-16 h-16 rounded-full items-center justify-center mb-4"
+              style={{ backgroundColor: colors.surface }}
+            >
+              <FileText size={32} color={colors.muted} />
+            </View>
+            <Text className="text-lg font-semibold text-foreground text-center">
+              Nenhum relatório gerado
             </Text>
-            <Text className="text-xs text-muted leading-relaxed">
-              Os relatórios são gerados a partir de dados simulados para fins educacionais. Compartilhe com seu médico para discussão de saúde preventiva e longevidade.
+            <Text className="text-sm text-muted text-center mt-2">
+              Clique em "Gerar Relatório" para criar seu primeiro relatório de longevidade
             </Text>
           </View>
-        </View>
+        )}
       </ScrollView>
     </ScreenContainer>
   );
