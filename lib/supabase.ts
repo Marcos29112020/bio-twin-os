@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import * as SecureStore from "expo-secure-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Supabase configuration
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || "";
@@ -14,29 +15,51 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 
 /**
  * Custom storage adapter for Supabase Auth
- * Uses expo-secure-store for secure token storage
+ * Uses AsyncStorage as primary storage (works in Expo Go)
+ * Falls back to SecureStore on native platforms
  */
 const supabaseStorage = {
   getItem: async (key: string) => {
     try {
+      // Try AsyncStorage first (works in Expo Go)
+      const value = await AsyncStorage.getItem(key);
+      if (value) return value;
+      
+      // Fallback to SecureStore on native
       return await SecureStore.getItemAsync(key);
     } catch (error) {
-      console.error("Error reading from secure store:", error);
+      console.warn("Error reading from storage:", error);
       return null;
     }
   },
   setItem: async (key: string, value: string) => {
     try {
-      await SecureStore.setItemAsync(key, value);
+      // Store in AsyncStorage (works in Expo Go)
+      await AsyncStorage.setItem(key, value);
+      
+      // Also try SecureStore on native
+      try {
+        await SecureStore.setItemAsync(key, value);
+      } catch (e) {
+        // SecureStore not available, that's ok
+      }
     } catch (error) {
-      console.error("Error writing to secure store:", error);
+      console.warn("Error writing to storage:", error);
     }
   },
   removeItem: async (key: string) => {
     try {
-      await SecureStore.deleteItemAsync(key);
+      // Remove from AsyncStorage
+      await AsyncStorage.removeItem(key);
+      
+      // Also try SecureStore on native
+      try {
+        await SecureStore.deleteItemAsync(key);
+      } catch (e) {
+        // SecureStore not available, that's ok
+      }
     } catch (error) {
-      console.error("Error removing from secure store:", error);
+      console.warn("Error removing from storage:", error);
     }
   },
 };

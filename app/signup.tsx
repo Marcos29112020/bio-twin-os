@@ -1,15 +1,16 @@
-import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
+import { ScrollView, Text, TextInput, View, TouchableOpacity, Alert } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/lib/auth-context";
+import { profileService, authService } from "@/lib/supabase";
 import { Mail, Lock, User, ArrowRight } from "lucide-react-native";
 
 export default function SignupScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { signUp } = useAuth();
+  const { signUp, user } = useAuth();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -59,12 +60,49 @@ export default function SignupScreen() {
 
     setLoading(true);
     try {
-      await signUp(email, password);
-      Alert.alert("Sucesso", "Conta criada com sucesso! Faça login para continuar.");
+      // 1. Sign up with Supabase Auth
+      const { data: signUpData, error: signUpError } = await authService.signUp(email, password);
+      
+      if (signUpError) {
+        Alert.alert("Erro", (signUpError as any).message || "Falha ao criar conta");
+        setLoading(false);
+        return;
+      }
+
+      if (!signUpData?.user?.id) {
+        Alert.alert("Erro", "Falha ao criar conta. Tente novamente.");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Create user profile
+      const { data: profileData, error: profileError } = await profileService.upsertProfile(
+        signUpData.user.id,
+        {
+          name: name,
+          age: undefined,
+          photo_url: undefined,
+          bio: undefined,
+        }
+      );
+
+      if (profileError) {
+        console.error("Profile creation error:", profileError);
+        // Continue anyway, profile can be updated later
+      }
+
+      Alert.alert(
+        "Sucesso!",
+        "Conta criada com sucesso! Um email de confirmação foi enviado para " + email + ". Faça login para continuar."
+      );
+      
       router.replace("../login" as any);
     } catch (error) {
-      Alert.alert("Erro", "Falha ao criar conta. Tente novamente.");
       console.error("Signup error:", error);
+      Alert.alert(
+        "Erro",
+        error instanceof Error ? error.message : "Falha ao criar conta. Tente novamente."
+      );
     } finally {
       setLoading(false);
     }
@@ -76,7 +114,7 @@ export default function SignupScreen() {
         {/* Header */}
         <View className="px-6 pt-12 pb-8">
           <Text className="text-4xl font-bold text-foreground">Criar Conta</Text>
-          <Text className="text-sm text-muted mt-2">Comece seu jornada de saúde</Text>
+          <Text className="text-sm text-muted mt-2">Comece sua jornada de saúde</Text>
         </View>
 
         {/* Form */}
@@ -154,7 +192,7 @@ export default function SignupScreen() {
           </View>
 
           {/* Confirm Password Input */}
-          <View className="mb-6">
+          <View className="mb-8">
             <Text className="text-sm font-semibold text-foreground mb-2">Confirmar Senha</Text>
             <View
               className="flex-row items-center rounded-lg px-4 py-3 border"
@@ -179,29 +217,29 @@ export default function SignupScreen() {
             )}
           </View>
 
-          {/* Signup Button */}
+          {/* Sign Up Button */}
           <TouchableOpacity
             onPress={handleSignup}
             disabled={loading}
-            className="rounded-lg py-4 flex-row items-center justify-center gap-2"
             style={{
               backgroundColor: colors.primary,
               opacity: loading ? 0.6 : 1,
             }}
+            className="flex-row items-center justify-center rounded-lg py-4 mb-4"
           >
-            <Text className="text-white font-semibold">
+            <Text className="text-background font-semibold mr-2">
               {loading ? "Criando conta..." : "Criar Conta"}
             </Text>
-            {!loading && <ArrowRight size={20} color="white" />}
+            <ArrowRight size={20} color={colors.background} />
           </TouchableOpacity>
-        </View>
 
-        {/* Login Link */}
-        <View className="px-6 py-8 flex-row items-center justify-center gap-2">
-          <Text className="text-sm text-muted">Já tem conta?</Text>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text className="text-sm font-semibold text-primary">Entrar</Text>
-          </TouchableOpacity>
+          {/* Login Link */}
+          <View className="flex-row items-center justify-center">
+            <Text className="text-muted">Já tem uma conta? </Text>
+            <TouchableOpacity onPress={() => router.replace("../login" as any)} disabled={loading}>
+              <Text className="text-primary font-semibold">Faça login</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </ScreenContainer>

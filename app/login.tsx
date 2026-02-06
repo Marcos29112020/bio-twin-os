@@ -1,9 +1,10 @@
-import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
+import { ScrollView, Text, TextInput, View, TouchableOpacity, Alert } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/lib/auth-context";
+import { authService } from "@/lib/supabase";
 import { Mail, Lock, ArrowRight } from "lucide-react-native";
 
 export default function LoginScreen() {
@@ -40,11 +41,31 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      await signIn(email, password);
-      router.replace("/(tabs)");
+      const { data: loginData, error: loginError } = await authService.signIn(email, password);
+      
+      if (loginError) {
+        Alert.alert(
+          "Erro ao fazer login",
+          (loginError as any).message || "Email ou senha incorretos. Tente novamente."
+        );
+        setLoading(false);
+        return;
+      }
+
+      if (!loginData?.user?.id) {
+        Alert.alert("Erro", "Falha ao fazer login. Tente novamente.");
+        setLoading(false);
+        return;
+      }
+
+      // Login successful, navigate to dashboard
+      router.replace("/(tabs)" as any);
     } catch (error) {
-      Alert.alert("Erro", "Email ou senha incorretos");
       console.error("Login error:", error);
+      Alert.alert(
+        "Erro",
+        error instanceof Error ? error.message : "Falha ao fazer login. Tente novamente."
+      );
     } finally {
       setLoading(false);
     }
@@ -87,7 +108,7 @@ export default function LoginScreen() {
           </View>
 
           {/* Password Input */}
-          <View className="mb-6">
+          <View className="mb-8">
             <Text className="text-sm font-semibold text-foreground mb-2">Senha</Text>
             <View
               className="flex-row items-center rounded-lg px-4 py-3 border"
@@ -114,30 +135,30 @@ export default function LoginScreen() {
           <TouchableOpacity
             onPress={handleLogin}
             disabled={loading}
-            className="rounded-lg py-4 flex-row items-center justify-center gap-2"
             style={{
               backgroundColor: colors.primary,
               opacity: loading ? 0.6 : 1,
             }}
+            className="flex-row items-center justify-center rounded-lg py-4 mb-4"
           >
-            <Text className="text-white font-semibold">
+            <Text className="text-background font-semibold mr-2">
               {loading ? "Entrando..." : "Entrar"}
             </Text>
-            {!loading && <ArrowRight size={20} color="white" />}
+            <ArrowRight size={20} color={colors.background} />
           </TouchableOpacity>
 
-          {/* Forgot Password */}
-          <TouchableOpacity className="mt-4 items-center">
-            <Text className="text-sm text-primary">Esqueceu a senha?</Text>
+          {/* Forgot Password Link */}
+          <TouchableOpacity disabled={loading} className="mb-6">
+            <Text className="text-primary text-center text-sm">Esqueceu sua senha?</Text>
           </TouchableOpacity>
-        </View>
 
-        {/* Sign Up Link */}
-        <View className="px-6 py-8 flex-row items-center justify-center gap-2">
-          <Text className="text-sm text-muted">Não tem conta?</Text>
-          <TouchableOpacity onPress={() => router.push("../signup" as any)}>
-            <Text className="text-sm font-semibold text-primary">Cadastre-se</Text>
-          </TouchableOpacity>
+          {/* Sign Up Link */}
+          <View className="flex-row items-center justify-center">
+            <Text className="text-muted">Não tem uma conta? </Text>
+            <TouchableOpacity onPress={() => router.replace("../signup" as any)} disabled={loading}>
+              <Text className="text-primary font-semibold">Criar conta</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </ScreenContainer>

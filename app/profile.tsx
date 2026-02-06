@@ -1,11 +1,11 @@
-import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, Image } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
+import { ScrollView, Text, TextInput, View, TouchableOpacity, Alert, Image } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/lib/auth-context";
-import { profileService } from "@/lib/supabase";
+import { profileService, authService } from "@/lib/supabase";
 import { Camera, LogOut, Save, User } from "lucide-react-native";
 
 export default function ProfileScreen() {
@@ -18,6 +18,7 @@ export default function ProfileScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
   // Load profile data on mount
   useEffect(() => {
@@ -27,11 +28,13 @@ export default function ProfileScreen() {
       setLoading(true);
       try {
         const { data, error } = await profileService.getProfile(user.id);
-        if (error) throw error;
+        if (error) {
+          console.warn("Profile not found, creating new one");
+        }
 
         if (data) {
           setName(data.name || "");
-          setAge(data.age || "");
+          setAge(data.age?.toString() || "");
           if (data.photo_url) {
             setPhotoUri(data.photo_url);
           }
@@ -57,6 +60,7 @@ export default function ProfileScreen() {
 
       if (!result.canceled && result.assets[0]) {
         setPhotoUri(result.assets[0].uri);
+        setHasChanges(true);
       }
     } catch (error) {
       Alert.alert("Erro", "Falha ao selecionar foto");
@@ -76,7 +80,7 @@ export default function ProfileScreen() {
     try {
       let photoUrl = photoUri;
 
-      // Upload photo if changed
+      // Upload photo if changed and is a local file
       if (photoUri && photoUri.startsWith("file://")) {
         const { url, error: uploadError } = await profileService.uploadProfilePhoto(
           user.id,
@@ -84,49 +88,84 @@ export default function ProfileScreen() {
           `profile-${Date.now()}.jpg`
         );
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          throw uploadError;
+        }
         photoUrl = url;
       }
 
       // Update profile
-      const { error } = await profileService.upsertProfile(user.id, {
-        name: name.trim(),
-        age: age ? parseInt(age) : undefined,
-        photo_url: photoUrl || undefined,
-      });
+      const { data: profileData, error: profileError } = await profileService.upsertProfile(
+        user.id,
+        {
+          name: name.trim(),
+          age: age ? parseInt(age) : undefined,
+          photo_url: photoUrl || undefined,
+        }
+      );
 
-      if (error) throw error;
+      if (profileError) {
+        throw profileError;
+      }
 
+      setHasChanges(false);
       Alert.alert("Sucesso", "Perfil atualizado com sucesso!");
     } catch (error) {
-      Alert.alert("Erro", "Falha ao salvar perfil");
       console.error("Error saving profile:", error);
+      Alert.alert(
+        "Erro",
+        error instanceof Error ? error.message : "Falha ao salvar perfil. Tente novamente."
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const handleLogout = async () => {
-    try {
-      await signOut();
-      router.replace("../login" as any);
-    } catch (error) {
-      Alert.alert("Erro", "Falha ao fazer logout");
-      console.error("Logout error:", error);
-    }
+    Alert.alert("Fazer logout?", "Tem certeza que deseja sair?", [
+      {
+        text: "Cancelar",
+        onPress: () => {},
+        style: "cancel",
+      },
+      {
+        text: "Sair",
+        onPress: async () => {
+          try {
+            const { error } = await authService.signOut();
+            if (error) throw error;
+            
+            await signOut();
+            router.replace("../login" as any);
+          } catch (error) {
+            console.error("Logout error:", error);
+            Alert.alert("Erro", "Falha ao fazer logout. Tente novamente.");
+          }
+        },
+        style: "destructive",
+      },
+    ]);
   };
+
+  if (loading) {
+    return (
+      <ScreenContainer className="items-center justify-center">
+        <Text className="text-foreground">Carregando perfil...</Text>
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer className="p-0">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View className="px-6 pt-6 pb-4">
+        <View className="px-6 pt-6 pb-4 border-b" style={{ borderBottomColor: colors.border }}>
           <Text className="text-3xl font-bold text-foreground">Meu Perfil</Text>
           <Text className="text-sm text-muted mt-1">{user?.email}</Text>
         </View>
 
         {/* Profile Photo */}
-        <View className="px-6 mb-8">
+        <View className="px-6 my-8">
           <View className="items-center">
             {photoUri ? (
               <View className="relative">
@@ -137,8 +176,9 @@ export default function ProfileScreen() {
                 />
                 <TouchableOpacity
                   onPress={handlePickPhoto}
+                  disabled={saving}
                   className="absolute bottom-0 right-0 w-12 h-12 rounded-full items-center justify-center"
-                  style={{ backgroundColor: colors.primary }}
+                  style={{ backgroundColor: colors.primary, opacity: saving ? 0.6 : 1 }}
                 >
                   <Camera size={20} color="white" />
                 </TouchableOpacity>
@@ -146,8 +186,13 @@ export default function ProfileScreen() {
             ) : (
               <TouchableOpacity
                 onPress={handlePickPhoto}
-                className="w-32 h-32 rounded-full items-center justify-center"
-                style={{ backgroundColor: colors.surface }}
+                disabled={saving}
+                className="w-32 h-32 rounded-full items-center justify-center border-2"
+                style={{
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  opacity: saving ? 0.6 : 1,
+                }}
               >
                 <View className="items-center gap-2">
                   <User size={40} color={colors.muted} />
@@ -164,13 +209,21 @@ export default function ProfileScreen() {
           <View className="mb-6">
             <Text className="text-sm font-semibold text-foreground mb-2">Nome Completo</Text>
             <TextInput
-              className="rounded-lg px-4 py-3 text-foreground"
+              className="rounded-lg px-4 py-3 text-foreground border"
               placeholder="Seu nome"
               placeholderTextColor={colors.muted}
               value={name}
-              onChangeText={setName}
+              onChangeText={(text) => {
+                setName(text);
+                setHasChanges(true);
+              }}
               editable={!saving}
-              style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
+              style={{
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderWidth: 1,
+                opacity: saving ? 0.6 : 1,
+              }}
             />
           </View>
 
@@ -178,23 +231,35 @@ export default function ProfileScreen() {
           <View className="mb-6">
             <Text className="text-sm font-semibold text-foreground mb-2">Idade</Text>
             <TextInput
-              className="rounded-lg px-4 py-3 text-foreground"
+              className="rounded-lg px-4 py-3 text-foreground border"
               placeholder="Sua idade"
               placeholderTextColor={colors.muted}
               value={age}
-              onChangeText={setAge}
+              onChangeText={(text) => {
+                setAge(text);
+                setHasChanges(true);
+              }}
               keyboardType="number-pad"
               editable={!saving}
-              style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
+              style={{
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderWidth: 1,
+                opacity: saving ? 0.6 : 1,
+              }}
             />
           </View>
 
           {/* Email (Read-only) */}
-          <View className="mb-6">
+          <View className="mb-8">
             <Text className="text-sm font-semibold text-foreground mb-2">Email</Text>
             <View
-              className="rounded-lg px-4 py-3"
-              style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }}
+              className="rounded-lg px-4 py-3 border"
+              style={{
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderWidth: 1,
+              }}
             >
               <Text className="text-foreground">{user?.email}</Text>
             </View>
@@ -203,15 +268,15 @@ export default function ProfileScreen() {
           {/* Save Button */}
           <TouchableOpacity
             onPress={handleSaveProfile}
-            disabled={saving || loading}
-            className="rounded-lg py-4 flex-row items-center justify-center gap-2 mb-4"
+            disabled={saving || !hasChanges}
             style={{
               backgroundColor: colors.primary,
-              opacity: saving || loading ? 0.6 : 1,
+              opacity: saving || !hasChanges ? 0.5 : 1,
             }}
+            className="flex-row items-center justify-center rounded-lg py-4 mb-4"
           >
             <Save size={20} color="white" />
-            <Text className="text-white font-semibold">
+            <Text className="text-background font-semibold ml-2">
               {saving ? "Salvando..." : "Salvar Perfil"}
             </Text>
           </TouchableOpacity>
@@ -219,27 +284,16 @@ export default function ProfileScreen() {
           {/* Logout Button */}
           <TouchableOpacity
             onPress={handleLogout}
-            className="rounded-lg py-4 flex-row items-center justify-center gap-2"
-            style={{ backgroundColor: colors.error + "20", borderColor: colors.error, borderWidth: 1 }}
+            disabled={saving}
+            style={{
+              backgroundColor: colors.error,
+              opacity: saving ? 0.6 : 1,
+            }}
+            className="flex-row items-center justify-center rounded-lg py-4"
           >
-            <LogOut size={20} color={colors.error} />
-            <Text className="font-semibold" style={{ color: colors.error }}>
-              Fazer Logout
-            </Text>
+            <LogOut size={20} color="white" />
+            <Text className="text-background font-semibold ml-2">Fazer Logout</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Info Box */}
-        <View className="px-6 mb-6">
-          <View
-            className="rounded-lg p-4"
-            style={{ backgroundColor: colors.primary + "10", borderColor: colors.primary, borderWidth: 1 }}
-          >
-            <Text className="text-xs font-semibold text-foreground mb-1">💡 Dica</Text>
-            <Text className="text-xs text-foreground leading-relaxed">
-              Seus dados de perfil são salvos de forma segura no Supabase. Você pode atualizar suas informações a qualquer momento.
-            </Text>
-          </View>
         </View>
       </ScrollView>
     </ScreenContainer>

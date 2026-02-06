@@ -278,3 +278,13 @@
 - [x] Generate recommendations from analysis
 - [x] Create risk factor identification
 - [x] Add 13 unit tests for OCR analyzer
+
+## Phase 33: Fix Auth & Profile (URGENT)
+- [x] Fix login/logout functionality with proper error handling
+- [x] Fix signup with user profile creation in database
+- [x] Fix profile edit screen with photo upload
+- [x] Ensure user data persists in Supabase
+- [x] Refactor Supabase storage to use AsyncStorage (works in Expo Go)
+- [x] Improve error messages and user feedback
+- [x] Add profile photo upload to Supabase Storage
+- [ ] Test complete auth flow (signup → login → profile → logout)
