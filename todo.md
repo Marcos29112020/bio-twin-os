@@ -250,13 +250,14 @@
 - [x] Add 9 unit tests for exam upload
 
 ## Phase 30: Dynamic Dashboard (FREE TIER)
-- [ ] Make steps card editable with manual input
-- [ ] Make sleep hours card editable
-- [ ] Make stress level card editable
-- [ ] Save edited values to database
-- [ ] Update Bio-Score based on manual entries
-- [ ] Add edit/save buttons to cards
-- [ ] Implement undo functionality
+- [x] Make steps card editable with manual input
+- [x] Make sleep hours card editable
+- [x] Make resting heart rate card editable
+- [x] Save edited values to database
+- [x] Update Bio-Score based on manual entries
+- [x] Add edit/save buttons to cards
+- [x] Implement refresh functionality
+- [x] Add 8 unit tests for dashboard
 
 ## Phase 31: Data Persistence (FREE TIER)
 - [x] Implement session persistence with SecureStore
