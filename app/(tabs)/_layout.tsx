@@ -36,6 +36,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="dashboard-wearable"
+        options={{
+          title: "Wearables",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="waveform.circle.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="digital-twin"
         options={{
           title: "Gêmeo Digital",
