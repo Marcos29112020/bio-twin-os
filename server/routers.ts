@@ -5,6 +5,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import * as db from "./db.js";
 import { invokeLLM } from "./_core/llm.js";
+import { OCRAnalyzer } from "./ocr-analyzer.js";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -55,6 +56,45 @@ export const appRouter = router({
       )
       .query(async ({ ctx, input }) => {
         return db.getUserHealthData(ctx.user.id, input.dataType, input.limit);
+      }),
+  }),
+
+  // Exam Analysis Routes
+  exams: router({
+    analyzeExam: publicProcedure
+      .input(
+        z.object({
+          fileUrl: z.string().url(),
+          fileName: z.string(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        try {
+          // Fetch file content from URL
+          const response = await fetch(input.fileUrl);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch file: ${response.statusText}`);
+          }
+
+          // Get file content as text
+          const fileContent = await response.text();
+
+          // Analyze with OCR/AI
+          const analysis = await OCRAnalyzer.analyzeExamFile(fileContent, input.fileName);
+
+          return {
+            success: true,
+            data: analysis,
+            error: null,
+          };
+        } catch (error) {
+          console.error("Error analyzing exam:", error);
+          return {
+            success: false,
+            data: null,
+            error: error instanceof Error ? error.message : "Unknown error",
+          };
+        }
       }),
   }),
 

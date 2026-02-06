@@ -99,6 +99,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="exam-analysis"
+        options={{
+          title: "Análise de Exames",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="doc.text.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: "Configurações",

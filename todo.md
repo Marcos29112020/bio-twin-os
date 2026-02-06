@@ -267,3 +267,14 @@
 - [ ] Implement offline mode with local data
 - [ ] Add data sync on app resume
 - [ ] Create data migration for app updates
+
+
+## Phase 32: Exam OCR Analysis (NEW)
+- [x] Create OCRAnalyzer service
+- [x] Implement AI-based biomarker extraction
+- [x] Create exam analysis endpoint in tRPC
+- [x] Design exam analysis UI screen (app/(tabs)/exam-analysis.tsx)
+- [x] Add biomarker comparison with reference ranges
+- [x] Generate recommendations from analysis
+- [x] Create risk factor identification
+- [x] Add 13 unit tests for OCR analyzer
