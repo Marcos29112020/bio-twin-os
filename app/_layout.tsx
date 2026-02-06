@@ -8,6 +8,7 @@ import "react-native-reanimated";
 import { Platform } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -26,6 +27,35 @@ export const unstable_settings = {
   anchor: "(tabs)",
 };
 
+function RootLayoutContent() {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      {!isAuthenticated ? (
+        <>
+          <Stack.Screen name="login" />
+          <Stack.Screen name="signup" />
+        </>
+      ) : (
+        <>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="profile" />
+        </>
+      )}
+      <Stack.Screen name="oauth/callback" />
+    </Stack>
+  );
+}
+
 export default function RootLayout() {
   const initialInsets = initialWindowMetrics?.insets ?? DEFAULT_WEB_INSETS;
   const initialFrame = initialWindowMetrics?.frame ?? DEFAULT_WEB_FRAME;
@@ -33,7 +63,6 @@ export default function RootLayout() {
   const [insets, setInsets] = useState<EdgeInsets>(initialInsets);
   const [frame, setFrame] = useState<Rect>(initialFrame);
 
-  // Initialize Manus runtime for cookie injection from parent container
   useEffect(() => {
     initManusRuntime();
   }, []);
@@ -49,15 +78,12 @@ export default function RootLayout() {
     return () => unsubscribe();
   }, [handleSafeAreaUpdate]);
 
-  // Create clients once and reuse them
   const [queryClient] = useState(
     () =>
       new QueryClient({
         defaultOptions: {
           queries: {
-            // Disable automatic refetching on window focus for mobile
             refetchOnWindowFocus: false,
-            // Retry failed requests once
             retry: 1,
           },
         },
@@ -65,7 +91,6 @@ export default function RootLayout() {
   );
   const [trpcClient] = useState(() => createTRPCClient());
 
-  // Ensure minimum 8px padding for top and bottom on mobile
   const providerInitialMetrics = useMemo(() => {
     const metrics = initialWindowMetrics ?? { insets: initialInsets, frame: initialFrame };
     return {
@@ -82,14 +107,10 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          {/* Default to hiding native headers so raw route segments don't appear (e.g. "(tabs)", "products/[id]"). */}
-          {/* If a screen needs the native header, explicitly enable it and set a human title via Stack.Screen options. */}
-          {/* in order for ios apps tab switching to work properly, use presentation: "fullScreenModal" for login page, whenever you decide to use presentation: "modal*/}
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="oauth/callback" />
-          </Stack>
-          <StatusBar style="auto" />
+          <AuthProvider>
+            <RootLayoutContent />
+            <StatusBar style="auto" />
+          </AuthProvider>
         </QueryClientProvider>
       </trpc.Provider>
     </GestureHandlerRootView>

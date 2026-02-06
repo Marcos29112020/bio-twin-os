@@ -218,3 +218,50 @@
 - [x] Clean Gradle cache and node_modules
 - [x] Update minSdkVersion to 26 for Health Connect compatibility
 - [x] Add compileSdkVersion 35 and targetSdkVersion 35
+
+
+## Phase 27: Supabase Auth & Login System (FREE TIER)
+- [x] Configure Supabase Auth with email/password
+- [x] Create Login screen with form validation
+- [x] Create Signup screen with email verification
+- [x] Implement session persistence with SecureStore
+- [x] Create auth context and hooks
+- [x] Add logout functionality
+- [ ] Implement password reset flow
+
+## Phase 28: User Profile & Photo (FREE TIER)
+- [x] Create user profiles table in Supabase
+- [x] Implement expo-image-picker for photo selection
+- [x] Create profile edit screen
+- [x] Upload photos to Supabase Storage
+- [x] Display user photo in header
+- [x] Save name, age, email to database
+- [ ] Add profile completion indicator
+
+## Phase 29: Exam Upload System (FREE TIER)
+- [x] Install expo-document-picker for PDFs
+- [ ] Create exam upload screen
+- [ ] Implement file picker for PDF/JPG/IMG
+- [ ] Upload files to Supabase Storage (health-exams bucket)
+- [ ] Save exam metadata to database
+- [ ] Display success alert after upload
+- [ ] Show exam history list
+- [ ] Add exam deletion functionality
+
+## Phase 30: Dynamic Dashboard (FREE TIER)
+- [ ] Make steps card editable with manual input
+- [ ] Make sleep hours card editable
+- [ ] Make stress level card editable
+- [ ] Save edited values to database
+- [ ] Update Bio-Score based on manual entries
+- [ ] Add edit/save buttons to cards
+- [ ] Implement undo functionality
+
+## Phase 31: Data Persistence (FREE TIER)
+- [x] Implement session persistence with SecureStore
+- [x] Load user data on app startup
+- [x] Sync user profile on login
+- [ ] Cache health data locally
+- [ ] Implement offline mode with local data
+- [ ] Add data sync on app resume
+- [ ] Create data migration for app updates
