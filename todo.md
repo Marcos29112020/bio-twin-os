@@ -240,13 +240,14 @@
 
 ## Phase 29: Exam Upload System (FREE TIER)
 - [x] Install expo-document-picker for PDFs
-- [ ] Create exam upload screen
-- [ ] Implement file picker for PDF/JPG/IMG
-- [ ] Upload files to Supabase Storage (health-exams bucket)
-- [ ] Save exam metadata to database
-- [ ] Display success alert after upload
-- [ ] Show exam history list
-- [ ] Add exam deletion functionality
+- [x] Create exam upload screen (app/(tabs)/exams-upload.tsx)
+- [x] Implement file picker for PDF/JPG/IMG
+- [x] Upload files to Supabase Storage (health-exams bucket)
+- [x] Save exam metadata to database
+- [x] Display success alert after upload
+- [x] Show exam history list
+- [x] Add exam deletion functionality
+- [x] Add 9 unit tests for exam upload
 
 ## Phase 30: Dynamic Dashboard (FREE TIER)
 - [ ] Make steps card editable with manual input
